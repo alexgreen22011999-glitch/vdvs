@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Серотониновый синапс — действие СИОЗС</title>
+<style>
+  :root {
+    /* Norma palette (greens) */
+    --g-bg: #eaf5ee;
+    --g-fill: #c9e3cf;
+    --g-fill-2: #b6d8be;
+    --g-line: #4f8a63;
+    --g-deep: #1f5d36;
+    --g-ink: #134a28;
+
+    /* SSRI palette (rose) */
+    --r-bg: #fbeaee;
+    --r-fill: #f1c9d2;
+    --r-fill-2: #ebb6c2;
+    --r-line: #b65a72;
+    --r-deep: #8b2a44;
+    --r-ink: #6b1e34;
+
+    /* Depression palette (blue-grey) */
+    --d-bg: #e8edf5;
+    --d-fill: #b8c8e0;
+    --d-fill-2: #9fb3d0;
+    --d-line: #4a6a9a;
+    --d-deep: #1e3d6e;
+    --d-ink: #122a52;
+
+    --paper: #f4f6f8;
+    --ink: #20262d;
+    --rule: #d6dde3;
+
+    --gold: #f0b631;
+    --gold-deep: #b67c14;
+
+    --na: #2f6cd6;
+    --na-light: #6e9ee8;
+
+    --font: "PT Sans", "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
+  }
+
+  html, body { margin: 0; padding: 0; background: var(--paper); font-family: var(--font); color: var(--ink); }
+
+  .stage {
+    width: min(100vw, 1700px);
+    margin: 0 auto;
+    padding: 28px 24px 32px;
+    box-sizing: border-box;
+  }
+
+  .figure {
+    width: 100%;
+    aspect-ratio: 1480 / 1130;
+    display: block;
+  }
+
+  /* ------- shared label classes ------- */
+  .t-title    { font: 700 30px/1 var(--font); letter-spacing: .02em; }
+  .t-panel    { font: 700 22px/1.05 var(--font); letter-spacing: .02em; }
+  .t-label    { font: 700 14px/1.15 var(--font); letter-spacing: .02em; }
+  .t-small    { font: 600 12px/1.2 var(--font); }
+  .t-mono     { font: 600 12px/1.2 "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .t-legend   { font: 600 15px/1.25 var(--font); fill: #2c3540; }
+  .t-mark     { font: 700 16px/1 var(--font); }
+
+  /* ------- animations ------- */
+  /* Norma: serotonin exits left vesicle (curved left arc) → appears in cleft → moves to SERT → disappears inside */
+  @keyframes norma-uptake {
+    0%   { transform: var(--fromVes) scale(0.5);      opacity: 0; }
+    6%   { transform: var(--fromVes) scale(0.7);      opacity: 1; }
+    18%  { transform: var(--midL)    scale(0.9);      opacity: 1; }
+    32%  { transform: translate(0, 0) scale(1);       opacity: 1; }
+    70%  { transform: translate(0, 0) scale(1);       opacity: 1; }
+    78%  { transform: var(--toSertX)    scale(1);     opacity: 1; }
+    88%  { transform: var(--toSertEntry) scale(0.9);  opacity: 1; }
+    92%  { transform: var(--p2)          scale(0.8);  opacity: 1; }
+    95%  { transform: var(--p3)          scale(0.7);  opacity: 1; }
+    97%  { transform: var(--p4)          scale(0.5);  opacity: 1; }
+    99%  { transform: var(--p4)          scale(0.3);  opacity: 0; }
+    100% { transform: var(--p4)          scale(0.3);  opacity: 0; }
+  }
+
+  @keyframes sert-close {
+    0%,  22% { transform: translateX(0); }
+    27%       { transform: translateX(4px); }
+    32%       { transform: translateX(2px); }
+    88%       { transform: translateX(2px); }
+    94%       { transform: translateX(0); }
+    100%      { transform: translateX(0); }
+  }
+  @keyframes sert-close-r {
+    0%,  22% { transform: translateX(0); }
+    27%       { transform: translateX(-4px); }
+    32%       { transform: translateX(-2px); }
+    88%       { transform: translateX(-2px); }
+    94%       { transform: translateX(0); }
+    100%      { transform: translateX(0); }
+  }
+
+  /* SSRI: serotonin drifts in cleft; sertraline sits in SERT from 25%–95% of 11s cycle.
+     Molecules approach SERT at 25%, bounce off sertraline, drift back; try again at 95%. */
+  @keyframes ssri-drift {
+    0%   { transform: translate(0, 0);                    opacity: 0; }
+    5%   { transform: translate(0, 0);                    opacity: 1; }
+    /* random drift phase */
+    12%  { transform: var(--drift1, translate(8px,-6px));  opacity: 1; }
+    20%  { transform: var(--drift2, translate(-6px,5px));  opacity: 1; }
+    /* 25%: sertraline docks — molecules start moving toward SERT */
+    30%  { transform: var(--toSertX);                     opacity: 1; }
+    /* touch sertraline — bounce */
+    35%  { transform: var(--toSertEntry);                 opacity: 1; }
+    /* rebound */
+    40%  { transform: var(--toSertX);                     opacity: 1; }
+    /* drift away */
+    48%  { transform: translate(0, 0);                    opacity: 1; }
+    /* continued drift motion in cleft */
+    58%  { transform: var(--drift3, translate(10px,-8px)); opacity: 1; }
+    68%  { transform: var(--drift4, translate(-8px,6px));  opacity: 1; }
+    78%  { transform: var(--drift5, translate(6px,-4px));  opacity: 1; }
+    88%  { transform: translate(0, 0);                    opacity: 1; }
+    100% { transform: translate(0, 0);                    opacity: 1; }
+  }
+
+  /* One-shot fade-in for each serotonin dot */
+  @keyframes ssri-appear {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes sertraline-pulse {
+    0%   { transform: scale(1);    filter: drop-shadow(0 0 3px  rgba(240,182,49,.15)); }
+    50%  { transform: scale(1.04); filter: drop-shadow(0 0 10px rgba(240,182,49,.5));  }
+    100% { transform: scale(1);    filter: drop-shadow(0 0 3px  rgba(240,182,49,.15)); }
+  }
+
+  @keyframes receptor-glow-g {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(45,138,78,0)); }
+    50%      { filter: drop-shadow(0 0 5px rgba(45,138,78,.4)); }
+  }
+
+  @keyframes receptor-glow-r {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(192,64,106,0)); }
+    50%      { filter: drop-shadow(0 0 10px rgba(192,64,106,.7)); }
+  }
+
+@keyframes arrow-flow-down {
+    0%   { transform: translateY(-4px); opacity: .6; }
+    50%  { transform: translateY(2px);  opacity: 1; }
+    100% { transform: translateY(-4px); opacity: .6; }
+  }
+  @keyframes arrow-flow-up {
+    0%   { transform: translateY(4px);  opacity: .6; }
+    50%  { transform: translateY(-2px); opacity: 1; }
+    100% { transform: translateY(4px);  opacity: .6; }
+  }
+
+  /* Sertraline flies from middle of right side → SERT position, then loops.
+     Molecule lives inside scale(1.4) group so translate values are in scaled coords.
+     Panel-SSRI local coords: SERT at (560,628), right-side midpoint ~(700,380).
+     Delta in scale(1.4) space: dx≈+100, dy≈-177. */
+  @keyframes sertraline-fly {
+    0%   { transform: translate(100px, -177px) scale(0.75); opacity: 0; }
+    4%   { transform: translate(100px, -177px) scale(0.85); opacity: 1; }
+    25%  { transform: translate(0px, 0px) scale(1);         opacity: 1; filter: drop-shadow(0 0 0 rgba(240,182,49,0)); }
+    35%  { transform: translate(0px, 0px) scale(1.1);       opacity: 1; filter: drop-shadow(0 0 10px rgba(240,182,49,.8)); }
+    48%  { transform: translate(0px, 0px) scale(1.04);      opacity: 1; filter: drop-shadow(0 0 5px rgba(240,182,49,.5)); }
+    62%  { transform: translate(0px, 0px) scale(1.08);      opacity: 1; filter: drop-shadow(0 0 8px rgba(240,182,49,.6)); }
+    75%  { transform: translate(0px, 0px) scale(1.04);      opacity: 1; filter: drop-shadow(0 0 5px rgba(240,182,49,.4)); }
+    86%  { transform: translate(0px, 0px) scale(1.07);      opacity: 1; filter: drop-shadow(0 0 7px rgba(240,182,49,.55)); }
+    95%  { transform: translate(0px, 0px) scale(1);         opacity: 1; filter: drop-shadow(0 0 2px rgba(240,182,49,.2)); }
+    100% { transform: translate(0px, 0px) scale(1);         opacity: 1; }
+  }
+
+  /* Red glow layer on SERT — fades in/out when sertraline connects (~25% of cycle) */
+  @keyframes sert-glow-layer {
+    0%,  22% { opacity: 0; transform: scale(1); }
+    27%      { opacity: .7; transform: scale(1.1); }
+    35%      { opacity: 1;  transform: scale(1.15); }
+    48%      { opacity: .8; transform: scale(1.12); }
+    62%      { opacity: 1;  transform: scale(1.15); }
+    75%      { opacity: .7; transform: scale(1.1); }
+    88%      { opacity: .3; transform: scale(1.03); }
+    95%      { opacity: 0;  transform: scale(1); }
+    100%     { opacity: 0;  transform: scale(1); }
+  }
+  /* Base fill pulse (subtle colour shift) */
+  @keyframes sert-body-pulse {
+    0%,  22% { fill: url(#sert-r); }
+    35%      { fill: #ff0028; }
+    48%      { fill: #d9001e; }
+    62%      { fill: #ff0028; }
+    75%      { fill: #d9001e; }
+    88%      { fill: url(#sert-r); }
+    100%     { fill: url(#sert-r); }
+  }
+  @keyframes sert-bridge-pulse {
+    0%,  22% { fill: #9c4257; }
+    35%      { fill: #ff0028; }
+    48%      { fill: #d9001e; }
+    62%      { fill: #ff0028; }
+    75%      { fill: #d9001e; }
+    88%      { fill: #9c4257; }
+    100%     { fill: #9c4257; }
+  }
+
+  /* Block-X appears when sertraline arrives at SERT */
+  @keyframes block-x-sync {
+    0%,  23% { opacity: 0; transform: scale(0.3); }
+    30%      { opacity: 1; transform: scale(1.25); }
+    40%      { opacity: 1; transform: scale(1);    }
+    88%      { opacity: 1; transform: scale(1);    }
+    96%      { opacity: 0; transform: scale(0.5);  }
+    100%     { opacity: 0; transform: scale(0.3);  }
+  }
+
+  @keyframes sert-drop-in {
+    0%   { transform: translateY(-20px); opacity: 0; }
+    30%  { transform: translateY(-20px); opacity: 0; }
+    70%  { transform: translateY(0px);   opacity: 1; }
+    100% { transform: translateY(0px);   opacity: 1; }
+  }
+  @keyframes sertraline-settle {
+    0%, 100% { transform: translateY(0px) scale(1);    filter: drop-shadow(0 0 0 rgba(240,182,49,0)); }
+    50%      { transform: translateY(0px) scale(1.06); filter: drop-shadow(0 0 6px rgba(240,182,49,.55)); }
+  }
+  @keyframes sert-blocked-outline {
+    0%, 100% { opacity: .3; }
+    50%      { opacity: .8; }
+  }
+
+  /* attach animations */
+  .norma-sero {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: norma-uptake 4s ease-in-out infinite;
+  }
+  .ssri-sero {
+    transform-origin: center;
+    transform-box: fill-box;
+    opacity: 0;
+    animation-name: ssri-drift;
+    animation-duration: 11s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-fill-mode: none;
+  }
+  .sertraline { transform-origin: center; transform-box: fill-box; animation: sertraline-pulse 4s ease-in-out infinite; }
+  .receptor-g { transform-origin: center; transform-box: fill-box; animation: receptor-glow-g 4s ease-in-out infinite; }
+  .receptor-r { transform-origin: center; transform-box: fill-box; animation: receptor-glow-r 2s ease-in-out infinite; }
+.arrow-fast { transform-origin: center; transform-box: fill-box; animation: arrow-flow-down 1.6s ease-in-out infinite; }
+  .arrow-up   { transform-origin: center; transform-box: fill-box; animation: arrow-flow-up   2.2s ease-in-out infinite; }
+  .sert-drop-in    { transform-origin: center; transform-box: fill-box; animation: sertraline-fly 11s cubic-bezier(.4,0,.2,1) infinite; }
+  .sert-blocked-outline { transform-origin: center; transform-box: fill-box; animation: block-x-sync 11s ease-in-out infinite; opacity: 0; }
+  .sert-body-pulse   { transform-origin: center; transform-box: fill-box; animation: sert-body-pulse   11s ease-in-out infinite; }
+  .sert-bridge-pulse { transform-origin: center; transform-box: fill-box; animation: sert-bridge-pulse 11s ease-in-out infinite; }
+  .sert-glow-layer   { transform-origin: center; transform-box: fill-box; animation: sert-glow-layer   11s ease-in-out infinite; opacity: 0; }
+.sert-sub-l { transform-origin: center; transform-box: fill-box; animation: sert-close   11s ease-in-out infinite; }
+  .sert-sub-r { transform-origin: center; transform-box: fill-box; animation: sert-close-r 11s ease-in-out infinite; }
+
+  /* Vesicle bobbing — gentle up/down float */
+  @keyframes bob-a {
+    0%, 100% { transform: translateY(0px); }
+    50%      { transform: translateY(-5px); }
+  }
+  @keyframes bob-b {
+    0%, 100% { transform: translateY(0px); }
+    50%      { transform: translateY(-5px); }
+  }
+
+  /* Bottom vesicle exocytosis: moves down toward membrane, then fades */
+  @keyframes exo-move {
+    0%   { transform: translateY(0px); opacity: 1; }
+    55%  { transform: translateY(0px); opacity: 1; }
+    80%  { transform: translateY(30px); opacity: .8; }
+    90%  { transform: translateY(45px); opacity: 0; }
+    100% { transform: translateY(45px); opacity: 0; }
+  }
+
+  /* Serotonin dot bursting from exocytosis site */
+  @keyframes exo-dot-l {
+    0%, 55%  { transform: translate(0,0); opacity: 0; }
+    60%      { transform: translate(0,0); opacity: 1; }
+    90%      { transform: var(--ex-l, translate(-12px, 20px)); opacity: 1; }
+    100%     { transform: var(--ex-l, translate(-12px, 20px)); opacity: 0; }
+  }
+  @keyframes exo-dot-c {
+    0%, 55%  { transform: translate(0,0); opacity: 0; }
+    62%      { transform: translate(0,0); opacity: 1; }
+    90%      { transform: var(--ex-c, translate(0, 24px)); opacity: 1; }
+    100%     { transform: var(--ex-c, translate(0, 24px)); opacity: 0; }
+  }
+  @keyframes exo-dot-r {
+    0%, 55%  { transform: translate(0,0); opacity: 0; }
+    64%      { transform: translate(0,0); opacity: 1; }
+    90%      { transform: var(--ex-r, translate(12px, 20px)); opacity: 1; }
+    100%     { transform: var(--ex-r, translate(12px, 20px)); opacity: 0; }
+  }
+
+  .ves-bob-a { transform-origin: center; transform-box: fill-box; animation: bob-a 3.2s ease-in-out infinite; }
+  .ves-bob-b { transform-origin: center; transform-box: fill-box; animation: bob-b 3.8s ease-in-out infinite; }
+  .ves-exo   { transform-origin: center; transform-box: fill-box; animation: exo-move 5s ease-in-out infinite; }
+  .exo-dot-l { transform-origin: center; transform-box: fill-box; animation: exo-dot-l 5s ease-in-out infinite; }
+  .exo-dot-c { transform-origin: center; transform-box: fill-box; animation: exo-dot-c 5s ease-in-out infinite; }
+  .exo-dot-r { transform-origin: center; transform-box: fill-box; animation: exo-dot-r 5s ease-in-out infinite; }
+
+  /* Depression: receptor dim glow (blue-grey, less active) */
+  @keyframes receptor-glow-d {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(74,106,154,0)); opacity: 0.6; }
+    50%      { filter: drop-shadow(0 0 4px rgba(74,106,154,.35)); opacity: 0.8; }
+  }
+  .receptor-d { transform-origin: center; transform-box: fill-box; animation: receptor-glow-d 5s ease-in-out infinite; }
+
+  /* Depression serotonin — same uptake as norma but far fewer molecules, slower release */
+  .dep-sero {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: norma-uptake 5s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; }
+  }
+
+  /* Pause toggle */
+  .paused * { animation-play-state: paused !important; }
+
+  /* Pause button */
+  .btn-pause {
+    display: block;
+    margin: 0 auto 14px;
+    background: #ffffff;
+    border: 1px solid #d0d5da;
+    border-radius: 8px;
+    padding: 8px 22px;
+    font-size: 14px;
+    font-family: var(--font);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: background .15s;
+    color: var(--ink);
+  }
+  .btn-pause:hover { background: #f4f6f8; }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .t-title  { font-size: 36px; }
+    .t-panel  { font-size: 26px; }
+    .t-label  { font-size: 17px; }
+    .t-small  { font-size: 14px; }
+    .t-mono   { font-size: 14px; }
+    .t-legend { font-size: 16px; }
+    .t-mark   { font-size: 19px; }
+
+    /* Legend: two-column grid inside the SVG is not possible directly,
+       so we overlay a separate HTML legend on mobile */
+    .legend-mobile {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 24px;
+      background: #fff;
+      border: 1px solid #dde3ea;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 10px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      color: #2c3540;
+    }
+    .legend-mobile .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: calc(50% - 12px);
+    }
+    .legend-mobile .leg-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    /* Hide SVG legend on mobile */
+    #legend { display: none; }
+  }
+  @media (min-width: 769px) {
+    .legend-mobile { display: none; }
+  }
+</style>
+
+</head>
+<body style="">
+<div class="stage">
+
+<button class="btn-pause" id="btnPause" onclick="(function(){var b=document.getElementById('btnPause');var paused=document.body.classList.toggle('paused');b.textContent=paused?'▶ Играть':'⏸ Пауза';})()">⏸ Пауза</button>
+
+<svg class="figure" viewBox="0 0 1480 1130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Серотониновый синапс — норма, СИОЗС и депрессия" style="aspect-ratio: 1480/1130;">
+
+  <defs>
+    <!-- Subtle inner soft fill gradients for neurons -->
+    <radialGradient id="presyn-g" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#f0faf2"></stop>
+      <stop offset="60%" stop-color="#c9e3cf"></stop>
+      <stop offset="100%" stop-color="#a9cdb3"></stop>
+    </radialGradient>
+    <radialGradient id="presyn-r" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#fdf0f3"></stop>
+      <stop offset="60%" stop-color="#f1c9d2"></stop>
+      <stop offset="100%" stop-color="#dfa6b3"></stop>
+    </radialGradient>
+    <radialGradient id="presyn-d" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#e8eef8"></stop>
+      <stop offset="60%" stop-color="#b8c8e0"></stop>
+      <stop offset="100%" stop-color="#8faac8"></stop>
+    </radialGradient>
+
+    <linearGradient id="postsyn-g" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#d6ead9"></stop>
+      <stop offset="100%" stop-color="#b9d6bf"></stop>
+    </linearGradient>
+    <linearGradient id="postsyn-r" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f4d2d9"></stop>
+      <stop offset="100%" stop-color="#e3b1bd"></stop>
+    </linearGradient>
+    <linearGradient id="postsyn-d" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#c8d8ee"></stop>
+      <stop offset="100%" stop-color="#a0bcd8"></stop>
+    </linearGradient>
+    <linearGradient id="sert-d" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#5a7aaa"></stop>
+      <stop offset="100%" stop-color="#1e3d6e"></stop>
+    </linearGradient>
+
+    <!-- Vesicle gradient (white sphere with mint highlight) -->
+    <radialGradient id="ves-hl" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#ffffff"></stop>
+      <stop offset="55%" stop-color="#f6fbf7"></stop>
+      <stop offset="100%" stop-color="#e2efe4"></stop>
+    </radialGradient>
+    <radialGradient id="ves-hl-r" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#ffffff"></stop>
+      <stop offset="55%" stop-color="#fdf3f5"></stop>
+      <stop offset="100%" stop-color="#f1d6dc"></stop>
+    </radialGradient>
+
+    <!-- SERT body gradient -->
+    <linearGradient id="sert-g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#5e9c72"></stop>
+      <stop offset="100%" stop-color="#2d6a44"></stop>
+    </linearGradient>
+    <linearGradient id="sert-r" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#c47488"></stop>
+      <stop offset="100%" stop-color="#8a2e48"></stop>
+    </linearGradient>
+
+    <!-- Sertraline molecule gradient -->
+    <radialGradient id="pill" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#ffe6a3"></stop>
+      <stop offset="55%" stop-color="#f0b631"></stop>
+      <stop offset="100%" stop-color="#b67c14"></stop>
+    </radialGradient>
+
+    <!-- Red glow filter for SERT pulse -->
+    <filter id="sert-red-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"></feGaussianBlur>
+      <feFlood flood-color="#ff0028" flood-opacity="1" result="color"></feFlood>
+      <feComposite in="color" in2="blur" operator="in" result="glow"></feComposite>
+      <feMerge><feMergeNode in="glow"></feMergeNode><feMergeNode in="glow"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+    </filter>
+
+    <!-- Soft drop shadow for neurons -->
+    <filter id="shadow-soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"></feGaussianBlur>
+      <feOffset dx="0" dy="3" result="off"></feOffset>
+      <feComponentTransfer><feFuncA type="linear" slope=".22"></feFuncA></feComponentTransfer>
+      <feMerge><feMergeNode></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+    </filter>
+
+    <!-- Arrowheads -->
+    <marker id="ah-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f5d36"></path>
+    </marker>
+    <marker id="ah-r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b2a44"></path>
+    </marker>
+    <marker id="ah-gray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9aa3ad"></path>
+    </marker>
+    <marker id="ah-d" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1e3d6e"></path>
+    </marker>
+
+<!-- Clip path: presynaptic neuron shape — left panel (userSpaceOnUse coords) -->
+    <clipPath id="clip-presyn" clipPathUnits="userSpaceOnUse">
+      <path d="M 350 85 L 350 200 C 345 250, 320 290, 280 320 C 195 380, 110 420, 95 510 C 80 580, 140 625, 250 632 C 320 638, 440 638, 510 632 C 620 625, 680 580, 665 510 C 650 420, 565 380, 480 320 C 440 290, 415 250, 410 200 L 410 85 C 405 70, 355 70, 350 85 Z"></path>
+    </clipPath>
+    <!-- Clip path for right panel: same local coords as left panel -->
+    <clipPath id="clip-presyn-r" clipPathUnits="userSpaceOnUse">
+      <path transform="translate(740 0)" d="M 350 85 L 350 200 C 345 250, 320 290, 280 320 C 195 380, 110 420, 95 510 C 80 580, 140 625, 250 632 C 320 638, 440 638, 510 632 C 620 625, 680 580, 665 510 C 650 420, 565 380, 480 320 C 440 290, 415 250, 410 200 L 410 85 C 405 70, 355 70, 350 85 Z"></path>
+    </clipPath>
+    <!-- Clip path for depression panel (third panel, below norma) -->
+    <clipPath id="clip-presyn-d" clipPathUnits="userSpaceOnUse">
+      <path transform="translate(0 1080)" d="M 350 85 L 350 200 C 345 250, 320 290, 280 320 C 195 380, 110 420, 95 510 C 80 580, 140 625, 250 632 C 320 638, 440 638, 510 632 C 620 625, 680 580, 665 510 C 650 420, 565 380, 480 320 C 440 290, 415 250, 410 200 L 410 85 C 405 70, 355 70, 350 85 Z"></path>
+    </clipPath>
+
+    <!-- =================================================== -->
+    <!-- VESICLE SYMBOL: white sphere + 7 small filled dots  -->
+    <!-- =================================================== -->
+    <symbol id="vesicle-g" viewBox="-30 -30 60 60" overflow="visible">
+      <circle r="26" fill="url(#ves-hl)" stroke="#5e9c72" stroke-width="1.6"></circle>
+      <circle cx="-9" cy="-10" r="3.4" fill="#1f5d36"></circle>
+      <circle cx="8" cy="-12" r="3.4" fill="#1f5d36"></circle>
+      <circle cx="-13" cy="4" r="3.4" fill="#1f5d36"></circle>
+      <circle cx="2" cy="0" r="3.4" fill="#1f5d36"></circle>
+      <circle cx="13" cy="3" r="3.4" fill="#1f5d36"></circle>
+      <circle cx="-4" cy="12" r="3.4" fill="#1f5d36"></circle>
+      <circle cx="10" cy="14" r="3.4" fill="#1f5d36"></circle>
+    </symbol>
+    <symbol id="vesicle-r" viewBox="-30 -30 60 60" overflow="visible">
+      <circle r="26" fill="url(#ves-hl-r)" stroke="#8b2a44" stroke-width="3"></circle>
+      <circle cx="-9" cy="-10" r="3.4" fill="#8b2a44"></circle>
+      <circle cx="8" cy="-12" r="3.4" fill="#8b2a44"></circle>
+      <circle cx="-13" cy="4" r="3.4" fill="#8b2a44"></circle>
+      <circle cx="2" cy="0" r="3.4" fill="#8b2a44"></circle>
+      <circle cx="13" cy="3" r="3.4" fill="#8b2a44"></circle>
+      <circle cx="-4" cy="12" r="3.4" fill="#8b2a44"></circle>
+      <circle cx="10" cy="14" r="3.4" fill="#8b2a44"></circle>
+    </symbol>
+
+    <!-- SERT transporter: two vertical domains joined by a middle bridge (H/bracket shape) -->
+    <symbol id="sert-norma" viewBox="-32 -38 64 76" overflow="visible">
+      <!-- left subunit -->
+      <path d="M -28 -34 C -34 -10, -34 10, -28 34 C -14 28, -10 14, -8 0 C -10 -14, -14 -28, -28 -34 Z" fill="url(#sert-g)" stroke="#1f5d36" stroke-width="1.4" stroke-linejoin="round"></path>
+      <!-- right subunit -->
+      <path d="M 28 -34 C 34 -10, 34 10, 28 34 C 14 28, 10 14, 8 0 C 10 -14, 14 -28, 28 -34 Z" fill="url(#sert-g)" stroke="#1f5d36" stroke-width="1.4" stroke-linejoin="round"></path>
+      <!-- central bridge -->
+      <rect x="-9" y="-5" width="18" height="10" rx="2" fill="#3a7a52" stroke="#1f5d36" stroke-width="1.2"></rect>
+    </symbol>
+
+    <symbol id="sert-ssri" viewBox="-32 -38 64 76" overflow="visible">
+      <path d="M -28 -34 C -34 -10, -34 10, -28 34 C -14 28, -10 14, -8 0 C -10 -14, -14 -28, -28 -34 Z" fill="url(#sert-r)" stroke="#6b1e34" stroke-width="1.4" stroke-linejoin="round"></path>
+      <path d="M 28 -34 C 34 -10, 34 10, 28 34 C 14 28, 10 14, 8 0 C 10 -14, 14 -28, 28 -34 Z" fill="url(#sert-r)" stroke="#6b1e34" stroke-width="1.4" stroke-linejoin="round"></path>
+      <rect x="-9" y="-5" width="18" height="10" rx="2" fill="#9c4257" stroke="#6b1e34" stroke-width="1.2"></rect>
+    </symbol>
+
+    <!-- Receptor: Y-shaped (two angled arms + stem) -->
+    <symbol id="receptor-g" viewBox="-14 -22 28 44" overflow="visible">
+      <!-- left arm of Y -->
+      <rect x="-4" y="-22" width="8" height="23" rx="3" fill="#5e9c72" stroke="#1f5d36" stroke-width="1.2" transform="rotate(-28)"></rect>
+      <!-- right arm of Y -->
+      <rect x="-4" y="-22" width="8" height="23" rx="3" fill="#5e9c72" stroke="#1f5d36" stroke-width="1.2" transform="rotate(28)"></rect>
+      <!-- stem (in membrane) -->
+      <rect x="-5" y="-2" width="10" height="22" rx="3" fill="#3a7a52" stroke="#1f5d36" stroke-width="1.2"></rect>
+    </symbol>
+    <symbol id="receptor-r-sym" viewBox="-14 -22 28 44" overflow="visible">
+      <rect x="-4" y="-22" width="8" height="23" rx="3" fill="#c47488" stroke="#6b1e34" stroke-width="1.2" transform="rotate(-28)"></rect>
+      <rect x="-4" y="-22" width="8" height="23" rx="3" fill="#c47488" stroke="#6b1e34" stroke-width="1.2" transform="rotate(28)"></rect>
+      <rect x="-5" y="-2" width="10" height="22" rx="3" fill="#9c4257" stroke="#6b1e34" stroke-width="1.2"></rect>
+    </symbol>
+
+    <!-- Sertraline pill -->
+    <symbol id="sertraline-mol" viewBox="-22 -13 44 26" overflow="visible">
+      <ellipse cx="0" cy="0" rx="19" ry="10.5" fill="url(#pill)" stroke="#8a5a0c" stroke-width="1.4"></ellipse>
+      <ellipse cx="-6" cy="-3.5" rx="7.5" ry="3.2" fill="#fff5d6" opacity=".7"></ellipse>
+    </symbol>
+
+    <!-- bar-chart icon (3 bars rising) -->
+    <symbol id="bars-up" viewBox="0 0 24 22" overflow="visible">
+      <rect x="0" y="14" width="6" height="8" rx="1" fill="#c0364a"></rect>
+      <rect x="9" y="9" width="6" height="13" rx="1" fill="#b62b40"></rect>
+      <rect x="18" y="3" width="6" height="19" rx="1" fill="#8b2a44"></rect>
+    </symbol>
+  </defs>
+
+  <!-- ===================================================================== -->
+  <!-- TITLES                                                                  -->
+  <!-- ===================================================================== -->
+  <text class="t-title" x="370" y="48" text-anchor="middle" fill="#1f5d36">СЕРОТОНИНОВЫЙ СИНАПС (НОРМА)</text>
+  <text text-anchor="middle" x="370" y="68" font-family="PT Sans, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#4f8a63">Серотонин быстро захватывается обратно через SERT</text>
+  <text class="t-title" x="1130" y="48" text-anchor="middle" fill="#8b2a44">ПОСЛЕ ДЕЙСТВИЯ СИОЗС (СЕРТРАЛИН)</text>
+  <text text-anchor="middle" x="1130" y="68" font-family="PT Sans, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#b65a72">SERT заблокирован → серотонин накапливается в щели</text>
+
+  <!-- ===================================================================== -->
+  <!-- LEFT PANEL — NORMA                                                       -->
+  <!-- ===================================================================== -->
+  <g id="panel-norma">
+    <rect x="30" y="70" width="700" height="900" rx="14" fill="#eef2f5" stroke="#cfe1d4" stroke-width="1"></rect>
+
+    <!-- Presynaptic neuron — pear (bouton): narrow stem at top, bulbous bottom facing cleft -->
+    <path id="neuron-norma" d="M 350 85
+             L 350 200
+             C 345 250, 320 290, 280 320
+             C 195 380, 110 420, 95 510
+             C 80 580, 140 625, 250 632
+             C 320 638, 440 638, 510 632
+             C 620 625, 680 580, 665 510
+             C 650 420, 565 380, 480 320
+             C 440 290, 415 250, 410 200
+             L 410 85
+             C 405 70, 355 70, 350 85 Z" fill="url(#presyn-g)" stroke="#ffffff" stroke-width="2.5" paint-order="stroke" filter="url(#shadow-soft)"></path>
+
+    <text class="t-panel" x="380" y="578" text-anchor="middle" fill="#1f5d36">ПРЕСИНАПТИЧЕСКИЙ</text>
+    <text class="t-panel" x="380" y="604" text-anchor="middle" fill="#1f5d36">НЕЙРОН</text>
+
+    <!-- Vesicles inside neuron — clipped, animated, 3 vesicles -->
+    <g clip-path="url(#clip-presyn)">
+      <!-- top center -->
+      <g class="ves-bob-a" style="animation-delay:0s">
+        <use href="#vesicle-g" x="335" y="330" width="90" height="90"></use>
+      </g>
+      <!-- middle left -->
+      <g class="ves-bob-b" style="animation-delay:0.9s">
+        <use href="#vesicle-g" x="247" y="450" width="90" height="90"></use>
+      </g>
+      <!-- middle right -->
+      <g class="ves-bob-a" style="animation-delay:1.7s">
+        <use href="#vesicle-g" x="422" y="450" width="90" height="90"></use>
+      </g>
+    </g>
+
+    <!-- SERT on bottom membrane facing cleft — scaled 1.4× -->
+    <g transform="translate(560 628)">
+      <g transform="scale(1.4)">
+        <!-- left subunit — animates rightward on conformational change -->
+        <g class="sert-sub-l">
+          <path d="M -28 -34 C -34 -10, -34 10, -28 34 C -14 28, -10 14, -8 0 C -10 -14, -14 -28, -28 -34 Z" fill="url(#sert-g)" stroke="#1f5d36" stroke-width="1.4" stroke-linejoin="round"></path>
+        </g>
+        <!-- right subunit — animates leftward on conformational change -->
+        <g class="sert-sub-r">
+          <path d="M 28 -34 C 34 -10, 34 10, 28 34 C 14 28, 10 14, 8 0 C 10 -14, 14 -28, 28 -34 Z" fill="url(#sert-g)" stroke="#1f5d36" stroke-width="1.4" stroke-linejoin="round"></path>
+        </g>
+        <!-- central bridge (static) -->
+        <rect x="-9" y="-5" width="18" height="10" rx="2" fill="#3a7a52" stroke="#1f5d36" stroke-width="1.2"></rect>
+      </g>
+    </g>
+
+
+    <!-- SERT status badge: "SERT свободен" -->
+    <g transform="translate(625 660)">
+      <text x="0" y="0" font-family="PT Sans, Helvetica Neue, Arial, sans-serif" font-size="17" font-weight="700" fill="#1f5d36">SERT</text>
+      <text x="0" y="21" font-family="PT Sans, Helvetica Neue, Arial, sans-serif" font-size="17" font-weight="700" fill="#1f5d36">свободен</text>
+    </g>
+
+    <!-- Synaptic cleft: serotonin → SERT → smooth arc to right vesicle (467,495) -->
+    <!-- Arc waypoints (absolute): p2=(557,575) vertical up through SERT, p3=(520,530) curve left, p4=(467,495) vesicle -->
+    <!-- 10 molecules, cx=190 cy=697, delays 0s..2.7s step 0.3s -->
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:0s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:0.3s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:0.6s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:0.9s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:1.2s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:1.5s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:1.8s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:2.1s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:2.4s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+    <g class="norma-sero" style="--fromVes:translate(102px,-221px); --midL:translate(9px,-111px); --toSertX:translate(370px,0px); --toSertEntry:translate(370px,-39px); --toSertBounce:translate(370px,-49px); --p2:translate(367px,-132px); --p3:translate(330px,-177px); --p4:translate(282px,-212px); animation-delay:2.7s; animation-duration:3s;">
+      <circle cx="190" cy="697" r="6.5" fill="#2d8a4e" stroke="#185c30" stroke-width="1"></circle>
+    </g>
+
+
+    <!-- Synaptic cleft boundaries -->
+    <text x="62" y="695" text-anchor="middle" font-family="PT Sans, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#1f5d36" transform="rotate(-90, 62, 695)">СИНАПТИЧЕСКАЯ ЩЕЛЬ</text>
+
+    <!-- Postsynaptic neuron — inverted pear: bulbous head facing cleft, narrow dendritic stem below -->
+    <path d="M 95 840
+             C 88 790, 200 782, 280 782
+             C 320 780, 440 780, 510 782
+             C 580 782, 690 790, 685 840
+             C 678 885, 580 915, 480 923
+             C 460 926, 440 928, 430 928
+             L 430 940
+             L 350 940
+             L 350 928
+             C 340 928, 320 926, 300 923
+             C 200 915, 102 885, 95 840 Z" fill="url(#postsyn-g)" stroke="#ffffff" stroke-width="2.5" paint-order="stroke"></path>
+
+    <!-- Receptors on bulb top edge facing cleft -->
+    <g>
+      <g class="receptor-g" style="animation-delay:0s">    <use href="#receptor-g" x="119" y="778" width="42" height="63"></use></g>
+      <g class="receptor-g" style="animation-delay:.8s">   <use href="#receptor-g" x="249" y="750" width="42" height="63"></use></g>
+      <g class="receptor-g" style="animation-delay:1.6s">  <use href="#receptor-g" x="374" y="748" width="42" height="63"></use></g>
+      <g class="receptor-g" style="animation-delay:2.4s">  <use href="#receptor-g" x="499" y="750" width="42" height="63"></use></g>
+      <g class="receptor-g" style="animation-delay:3.2s">  <use href="#receptor-g" x="599" y="772" width="42" height="63"></use></g>
+    </g>
+
+
+    <text class="t-panel" x="380" y="890" text-anchor="middle" fill="#1f5d36">ПОСТСИНАПТИЧЕСКИЙ</text>
+    <text class="t-panel" x="380" y="914" text-anchor="middle" fill="#1f5d36">НЕЙРОН</text>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- RIGHT PANEL — SSRI                                                       -->
+  <!-- ===================================================================== -->
+  <g id="panel-ssri" transform="translate(740 0)">
+    <rect x="30" y="70" width="700" height="900" rx="14" fill="#eef2f5" stroke="#ecd2d8" stroke-width="1"></rect>
+
+    <!-- Presynaptic neuron — pear (bouton): narrow stem at top, bulbous bottom facing cleft -->
+    <path d="M 350 85
+             L 350 200
+             C 345 250, 320 290, 280 320
+             C 195 380, 110 420, 95 510
+             C 80 580, 140 625, 250 632
+             C 320 638, 440 638, 510 632
+             C 620 625, 680 580, 665 510
+             C 650 420, 565 380, 480 320
+             C 440 290, 415 250, 410 200
+             L 410 85
+             C 405 70, 355 70, 350 85 Z" fill="url(#presyn-r)" stroke="#ffffff" stroke-width="2.5" paint-order="stroke" filter="url(#shadow-soft)"></path>
+
+    <text class="t-panel" x="380" y="578" text-anchor="middle" fill="#8b2a44">ПРЕСИНАПТИЧЕСКИЙ</text>
+    <text class="t-panel" x="380" y="604" text-anchor="middle" fill="#8b2a44">НЕЙРОН</text>
+
+    <!-- Vesicles inside neuron — clipped, animated, 3 vesicles -->
+    <g>
+      <g class="ves-bob-a" style="animation-delay:0s">
+        <use href="#vesicle-r" x="335" y="330" width="90" height="90"></use>
+      </g>
+      <g class="ves-bob-b" style="animation-delay:0.9s">
+        <use href="#vesicle-r" x="247" y="450" width="90" height="90"></use>
+      </g>
+      <g class="ves-bob-a" style="animation-delay:1.7s">
+        <use href="#vesicle-r" x="422" y="450" width="90" height="90"></use>
+      </g>
+    </g>
+
+    <!-- SERT blocked by sertraline, on bottom membrane facing cleft — scaled 1.4× -->
+    <g transform="translate(560 628)">
+      <g transform="scale(1.4)">
+        <!-- SERT body base -->
+        <path class="sert-body-pulse" d="M -28 -34 C -34 -10, -34 10, -28 34 C -14 28, -10 14, -8 0 C -10 -14, -14 -28, -28 -34 Z" stroke="#6b1e34" stroke-width="1.4" stroke-linejoin="round"></path>
+        <path class="sert-body-pulse" d="M 28 -34 C 34 -10, 34 10, 28 34 C 14 28, 10 14, 8 0 C 10 -14, 14 -28, 28 -34 Z" stroke="#6b1e34" stroke-width="1.4" stroke-linejoin="round"></path>
+        <rect class="sert-bridge-pulse" x="-9" y="-5" width="18" height="10" rx="2" stroke="#6b1e34" stroke-width="1.2"></rect>
+        <!-- red glow overlay — pulsates when sertraline connects -->
+        <g class="sert-glow-layer" filter="url(#sert-red-glow)">
+          <path d="M -28 -34 C -34 -10, -34 10, -28 34 C -14 28, -10 14, -8 0 C -10 -14, -14 -28, -28 -34 Z" fill="#ff0028"></path>
+          <path d="M 28 -34 C 34 -10, 34 10, 28 34 C 14 28, 10 14, 8 0 C 10 -14, 14 -28, 28 -34 Z" fill="#ff0028"></path>
+          <rect x="-9" y="-5" width="18" height="10" rx="2" fill="#ff0028"></rect>
+        </g>
+        <!-- sertraline molecule flying in from top-right, then docking -->
+        <g class="sert-drop-in">
+          <use href="#sertraline-mol" x="-22" y="-13" width="44" height="26"></use>
+        </g>
+        <!-- block X removed -->
+      </g>
+    </g>
+
+
+    <!-- SERT status badge: "SERT блокирован" -->
+    <g transform="translate(625 660)">
+      <text x="0" y="0" font-family="PT Sans, Helvetica Neue, Arial, sans-serif" font-size="17" font-weight="700" fill="#8b2a44">SERT</text>
+      <text x="0" y="21" font-family="PT Sans, Helvetica Neue, Arial, sans-serif" font-size="17" font-weight="700" fill="#8b2a44">блокирован</text>
+    </g>
+
+
+    <!-- Serotonin in cleft — 18 dots in 3 rows, drifting + bouncing off blocked SERT -->
+    <!-- SERT local: x=560, y=628. Sertraline blocks at y≈618. -->
+    <!-- dx = 560-cx (to reach SERT x), dy varies per row -->
+    <g id="cleft-ssri">
+
+      <!-- row 1 (y=672): cx range 175–595, centred in cleft -->
+      <g class="ssri-sero" style="--toSertX:translate(375px,0px); --toSertEntry:translate(375px,-20px); --drift1:translate(7px,-5px); --drift2:translate(-5px,4px); --drift3:translate(9px,-7px); --drift4:translate(-6px,5px); --drift5:translate(5px,-3px); animation-delay:0s;"><circle cx="185" cy="672" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(297px,0px); --toSertEntry:translate(297px,-20px); --drift1:translate(-8px,6px); --drift2:translate(6px,-4px); --drift3:translate(-7px,8px); --drift4:translate(5px,-6px); --drift5:translate(-4px,4px); animation-delay:.4s;"><circle cx="263" cy="672" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(220px,0px); --toSertEntry:translate(220px,-20px); --drift1:translate(6px,-8px); --drift2:translate(-7px,5px); --drift3:translate(8px,-5px); --drift4:translate(-5px,7px); --drift5:translate(6px,-5px); animation-delay:.8s;"><circle cx="340" cy="672" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(142px,0px); --toSertEntry:translate(142px,-20px); --drift1:translate(-5px,7px); --drift2:translate(8px,-6px); --drift3:translate(-9px,5px); --drift4:translate(7px,-4px); --drift5:translate(-5px,6px); animation-delay:1.2s;"><circle cx="418" cy="672" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(65px,0px); --toSertEntry:translate(65px,-20px); --drift1:translate(9px,-5px); --drift2:translate(-6px,8px); --drift3:translate(7px,-6px); --drift4:translate(-8px,5px); --drift5:translate(5px,-7px); animation-delay:1.6s;"><circle cx="495" cy="672" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(-12px,0px); --toSertEntry:translate(-12px,-20px); --drift1:translate(-7px,6px); --drift2:translate(5px,-8px); --drift3:translate(-6px,7px); --drift4:translate(9px,-5px); --drift5:translate(-6px,4px); animation-delay:2.0s;"><circle cx="572" cy="672" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+
+      <!-- row 2 (y=689): cx range 175–575 -->
+      <g class="ssri-sero" style="--toSertX:translate(413px,0px); --toSertEntry:translate(413px,-37px); --drift1:translate(8px,-6px); --drift2:translate(-6px,5px); --drift3:translate(7px,-8px); --drift4:translate(-5px,6px); --drift5:translate(6px,-4px); animation-delay:.2s;"><circle cx="147" cy="689" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(336px,0px); --toSertEntry:translate(336px,-37px); --drift1:translate(-5px,8px); --drift2:translate(7px,-5px); --drift3:translate(-8px,6px); --drift4:translate(6px,-7px); --drift5:translate(-4px,5px); animation-delay:.6s;"><circle cx="224" cy="689" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(259px,0px); --toSertEntry:translate(259px,-37px); --drift1:translate(7px,-7px); --drift2:translate(-8px,5px); --drift3:translate(6px,-6px); --drift4:translate(-5px,8px); --drift5:translate(7px,-5px); animation-delay:1.0s;"><circle cx="301" cy="689" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(181px,0px); --toSertEntry:translate(181px,-37px); --drift1:translate(-6px,6px); --drift2:translate(8px,-7px); --drift3:translate(-7px,5px); --drift4:translate(5px,-8px); --drift5:translate(-6px,6px); animation-delay:1.4s;"><circle cx="379" cy="689" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(104px,0px); --toSertEntry:translate(104px,-37px); --drift1:translate(9px,-5px); --drift2:translate(-5px,7px); --drift3:translate(8px,-6px); --drift4:translate(-7px,5px); --drift5:translate(5px,-7px); animation-delay:1.8s;"><circle cx="456" cy="689" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(26px,0px); --toSertEntry:translate(26px,-37px); --drift1:translate(-7px,8px); --drift2:translate(6px,-5px); --drift3:translate(-5px,7px); --drift4:translate(8px,-6px); --drift5:translate(-6px,5px); animation-delay:2.2s;"><circle cx="534" cy="689" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+
+      <!-- row 3 (y=706): cx range 175–595 -->
+      <g class="ssri-sero" style="--toSertX:translate(375px,0px); --toSertEntry:translate(375px,-54px); --drift1:translate(6px,-8px); --drift2:translate(-8px,5px); --drift3:translate(7px,-6px); --drift4:translate(-5px,7px); --drift5:translate(8px,-5px); animation-delay:.1s;"><circle cx="185" cy="706" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(297px,0px); --toSertEntry:translate(297px,-54px); --drift1:translate(-7px,6px); --drift2:translate(5px,-7px); --drift3:translate(-6px,8px); --drift4:translate(7px,-5px); --drift5:translate(-5px,6px); animation-delay:.5s;"><circle cx="263" cy="706" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(220px,0px); --toSertEntry:translate(220px,-54px); --drift1:translate(8px,-5px); --drift2:translate(-5px,8px); --drift3:translate(6px,-7px); --drift4:translate(-8px,6px); --drift5:translate(5px,-5px); animation-delay:.9s;"><circle cx="340" cy="706" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(142px,0px); --toSertEntry:translate(142px,-54px); --drift1:translate(-5px,7px); --drift2:translate(7px,-6px); --drift3:translate(-8px,5px); --drift4:translate(6px,-7px); --drift5:translate(-5px,8px); animation-delay:1.3s;"><circle cx="418" cy="706" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(65px,0px); --toSertEntry:translate(65px,-54px); --drift1:translate(7px,-7px); --drift2:translate(-6px,5px); --drift3:translate(8px,-5px); --drift4:translate(-7px,7px); --drift5:translate(6px,-6px); animation-delay:1.7s;"><circle cx="495" cy="706" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(-12px,0px); --toSertEntry:translate(-12px,-54px); --drift1:translate(-8px,6px); --drift2:translate(5px,-8px); --drift3:translate(-6px,7px); --drift4:translate(8px,-5px); --drift5:translate(-5px,6px); animation-delay:2.1s;"><circle cx="572" cy="706" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+
+      <!-- row 4 (y=720): cx range 205–575, centred -->
+      <g class="ssri-sero" style="--toSertX:translate(355px,0px); --toSertEntry:translate(355px,-68px); --drift1:translate(7px,-6px); --drift2:translate(-6px,8px); --drift3:translate(8px,-5px); --drift4:translate(-5px,6px); --drift5:translate(7px,-7px); animation-delay:.3s;"><circle cx="205" cy="720" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(259px,0px); --toSertEntry:translate(259px,-68px); --drift1:translate(-5px,7px); --drift2:translate(7px,-5px); --drift3:translate(-7px,6px); --drift4:translate(6px,-8px); --drift5:translate(-6px,5px); animation-delay:.7s;"><circle cx="301" cy="720" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(181px,0px); --toSertEntry:translate(181px,-68px); --drift1:translate(8px,-7px); --drift2:translate(-7px,5px); --drift3:translate(5px,-8px); --drift4:translate(-6px,7px); --drift5:translate(7px,-5px); animation-delay:1.1s;"><circle cx="379" cy="720" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(104px,0px); --toSertEntry:translate(104px,-68px); --drift1:translate(-6px,5px); --drift2:translate(5px,-7px); --drift3:translate(-7px,6px); --drift4:translate(8px,-5px); --drift5:translate(-5px,7px); animation-delay:1.5s;"><circle cx="456" cy="720" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+      <g class="ssri-sero" style="--toSertX:translate(26px,0px); --toSertEntry:translate(26px,-68px); --drift1:translate(7px,-8px); --drift2:translate(-8px,6px); --drift3:translate(6px,-5px); --drift4:translate(-5px,8px); --drift5:translate(6px,-6px); animation-delay:1.9s;"><circle cx="534" cy="720" r="6.5" fill="#c0406a" stroke="#7a213a" stroke-width="1"></circle></g>
+    </g>
+
+    <!-- Synaptic cleft boundaries -->
+    <text x="62" y="695" text-anchor="middle" font-family="PT Sans, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#8b2a44" transform="rotate(-90, 62, 695)">СИНАПТИЧЕСКАЯ ЩЕЛЬ</text>
+
+    <!-- Postsynaptic neuron — inverted pear: bulbous head facing cleft, narrow dendritic stem below -->
+    <path d="M 95 840
+             C 88 790, 200 782, 280 782
+             C 320 780, 440 780, 510 782
+             C 580 782, 690 790, 685 840
+             C 678 885, 580 915, 480 923
+             C 460 926, 440 928, 430 928
+             L 430 940
+             L 350 940
+             L 350 928
+             C 340 928, 320 926, 300 923
+             C 200 915, 102 885, 95 840 Z" fill="url(#postsyn-r)" stroke="#ffffff" stroke-width="2.5" paint-order="stroke"></path>
+
+    <g>
+      <g class="receptor-r" style="animation-delay:0s">    <use href="#receptor-r-sym" x="119" y="778" width="42" height="63"></use></g>
+      <g class="receptor-r" style="animation-delay:.4s">  <use href="#receptor-r-sym" x="249" y="750" width="42" height="63"></use></g>
+      <g class="receptor-r" style="animation-delay:.8s">  <use href="#receptor-r-sym" x="374" y="748" width="42" height="63"></use></g>
+      <g class="receptor-r" style="animation-delay:1.2s"> <use href="#receptor-r-sym" x="499" y="750" width="42" height="63"></use></g>
+      <g class="receptor-r" style="animation-delay:1.6s"> <use href="#receptor-r-sym" x="599" y="772" width="42" height="63"></use></g>
+    </g>
+
+
+    <text class="t-panel" x="380" y="890" text-anchor="middle" fill="#8b2a44">ПОСТСИНАПТИЧЕСКИЙ</text>
+    <text class="t-panel" x="380" y="914" text-anchor="middle" fill="#8b2a44">НЕЙРОН</text>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- LEGEND STRIP — full width, 5 items                                    -->
+  <!-- ===================================================================== -->
+  <g id="legend">
+    <!-- legend box: x=30 matches panel left edge, gap of 14px below panels (panels end y=970) -->
+    <rect x="30" y="984" width="1440" height="136" rx="10" fill="#ffffff" stroke="#dde3ea" stroke-width="1.5"></rect>
+
+    <!-- 5 items evenly across inner width 1440px (x=30..1470): step=288, centers at 30+144=174, +288=462, +288=750, +288=1038, +288=1326 -->
+    <!-- Each group: icon centered at (0,0), label centered at (0,28) -->
+
+    <!-- 1. Серотонин — circle r=18 -->
+    <g transform="translate(174 1034)">
+      <circle r="18" fill="#2d8a4e"></circle>
+      <text class="t-legend" text-anchor="middle" x="0" y="36">Серотонин</text>
+    </g>
+
+    <!-- 2. Везикула с серотонином — scale(1.0), viewBox -30 -30 60 60 → centred at 0,0 -->
+    <g transform="translate(462 1034)">
+      <use href="#vesicle-g" x="-30" y="-30" width="60" height="60"></use>
+      <text class="t-legend" text-anchor="middle" x="0" y="42">Везикула с серотонином</text>
+    </g>
+
+    <!-- 3. SERT — scale(1.0), viewBox -32 -38 64 76 → centred at 0,0 -->
+    <g transform="translate(750 1034)">
+      <use href="#sert-norma" x="-32" y="-38" width="64" height="76"></use>
+      <text class="t-legend" text-anchor="middle" x="0" y="48">SERT</text>
+    </g>
+
+    <!-- 4. Серотониновый рецептор — scale(1.0), viewBox -14 -22 28 44 → centred at 0,0 -->
+    <g transform="translate(1038 1034)">
+      <use href="#receptor-g" x="-14" y="-22" width="28" height="44"></use>
+      <text class="t-legend" text-anchor="middle" x="0" y="36">Серотониновый рецептор</text>
+    </g>
+
+    <!-- 5. Сертралин (СИОЗС) — эллипс увеличен -->
+    <g transform="translate(1326 1034)">
+      <ellipse cx="0" cy="0" rx="34" ry="18" fill="url(#pill)" stroke="#8a5a0c" stroke-width="1.4"></ellipse>
+      <text class="t-legend" text-anchor="middle" x="0" y="36">Сертралин (СИОЗС)</text>
+    </g>
+
+  </g>
+
+</svg>
+
+<!-- Mobile legend (2-column, shown only on ≤768px) -->
+<div class="legend-mobile" aria-label="Легенда">
+  <div class="leg-item"><span class="leg-dot" style="background:#2d8a4e;border:1px solid #185c30"></span>Серотонин</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#5e9c72;border:1px solid #1f5d36;border-radius:2px"></span>SERT (транспортёр)</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#5e9c72;border:1px solid #1f5d36;border-radius:3px;clip-path:polygon(50% 0%,100% 100%,0% 100%)"></span>Серотониновый рецептор</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#f0b631;border:1px solid #8a5a0c;border-radius:50% 50%/40% 40%;width:20px;height:12px"></span>Сертралин (СИОЗС)</div>
+</div>
+
+</div>
+
+
+</body></html>
